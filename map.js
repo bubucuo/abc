@@ -1,16 +1,15 @@
-// index%len
+// const o = { a: "aaa", b: "bbb", 0: "ccc", 1: "ddd" };
 
 function MyMap() {
   this.init();
 }
 
-// 数组、链表
-// [next(head), _, _];
-// l, l, l;
+// 数组+链表
+// [{next:->}, _, _...], 8
 MyMap.prototype.init = function () {
   this.size = 0;
 
-  // ! 错误的示范
+  // 错误的示范
   // this.bucket = new Array(8).fill({ next: null });
 
   this.bucket = new Array(8);
@@ -21,48 +20,73 @@ MyMap.prototype.init = function () {
   }
 };
 
+MyMap.prototype.hash = function (key) {
+  let index = 0;
+
+  // 根据key来决定index的大小
+  if (typeof key === "string") {
+    for (let i = 0; i < 10; i++) {
+      index += isNaN(key.charCodeAt(key)) ? 0 : key.charCodeAt(key);
+    }
+  } else if (typeof key === "number") {
+    index = index % this.bucket.length;
+  } else if (typeof key === "object") {
+    index = 0;
+  } else if (typeof key === "undefined") {
+    index = 1;
+  } else if (typeof key === "null") {
+    index = 2;
+  }
+
+  index = index % this.bucket.length;
+
+  return index;
+};
+
 MyMap.prototype.set = function (key, value) {
-  // 1. 决定把{key:vlaue}放到哪个链表上
+  // 1. 决定把{key:value}存到哪个链表上，其实就是获取到对应的链表下标
   const i = this.hash(key);
-  // 2. 获取当前值对要存放的链表
+  // 2.获取当前{key:value}要存放的链表
   let target = this.bucket[i];
-  // 3. 放到链表的哪个位置
+  // 3. 决定把{key:value}存到链表尾部或者更新
   while (target.next) {
     if (target.next.key === key) {
-      // 更新，在这儿就退出了
+      // 更新
       target.next.value = value;
       return this;
     }
     target = target.next;
   }
 
-  // 初始化
+  // 新增
   target.next = { key, value, next: null };
-  // 初始化完了， size要加1
+
   this.size++;
   return this;
 };
 
 MyMap.prototype.get = function (key) {
-  // 1. 先找到{key:vlaue}在哪个链表上
+  // 1. 寻找{key:value}在到哪个链表上，其实就是获取到对应的链表下标
   const i = this.hash(key);
-  // 2. 获取当前值对存放的链表
+  // 2.获取当前{key:value}要存放的链表
   let target = this.bucket[i];
-  // 3. 找到在链表的哪个位置上
+  // 3. 找到{key:value}存到链表哪个位置，找到了就返回value，找不到返回undefined
   while (target.next) {
     if (target.next.key === key) {
       return target.next.value;
     }
     target = target.next;
   }
+
+  return undefined;
 };
 
 MyMap.prototype.has = function (key) {
-  // 1. 先找到{key:vlaue}在哪个链表上
+  // 1. 寻找{key:value}在到哪个链表上，其实就是获取到对应的链表下标
   const i = this.hash(key);
-  // 2. 获取当前值对存放的链表
+  // 2.获取当前{key:value}要存放的链表
   let target = this.bucket[i];
-  // 3. 找到在链表的哪个位置上
+  // 3. 找到{key:value}存到链表哪个位置，找到了就返回true，找不到返回false
   while (target.next) {
     if (target.next.key === key) {
       return true;
@@ -74,14 +98,14 @@ MyMap.prototype.has = function (key) {
 };
 
 MyMap.prototype.delete = function (key) {
-  // 1. 先找到{key:vlaue}在哪个链表上
+  // 1. 寻找{key:value}在到哪个链表上，其实就是获取到对应的链表下标
   const i = this.hash(key);
-  // 2. 获取当前值对存放的链表
+  // 2.获取当前{key:value}要存放的链表
   let target = this.bucket[i];
-  // 3. 找到在链表的哪个位置上
+  // 3. 找到{key:value}存到链表哪个位置，找到了就删除并且返回true，找不到返回false
+
   while (target.next) {
     if (target.next.key === key) {
-      // 找到了，修改链表指向
       target.next = target.next.next;
       return true;
     }
@@ -91,63 +115,31 @@ MyMap.prototype.delete = function (key) {
   return false;
 };
 
-MyMap.prototype.clear = function () {
+MyMap.prototype.clear = function (key) {
   this.init();
 };
 
-// hash函数。不同的散列表，hash也不同。
-MyMap.prototype.hash = function (key) {
-  let index = 0;
-  // 根据key的不同的数据类型，返回不同的index，其实就是决定放到bucket的哪个链表上
-  if (typeof key === "object") {
-    index = 0;
-  } else if (typeof key === "number") {
-    index = key % this.bucket.length;
-  } else if (typeof key === "undefined") {
-    index = 1;
-  } else if (typeof key === "null") {
-    index = 2;
-  } else if (typeof key === "string") {
-    for (let i = 0; i < 10; i++) {
-      index += isNaN(key.charCodeAt(i)) ? 0 : key.charCodeAt(i);
-    }
-  }
+const map = new MyMap();
 
-  index = index % this.bucket.length;
-
-  return index;
-};
-
-const o = {};
-
-const fn = () => {
-  console.log("fn"); //sy-log
-};
-
-const map = new Map();
-
+const obj = {};
 map
-  .set("key2", "value2")
-  .set(o, "对象")
-  .set(o, "新对象")
-  .set(function () {}, "哈哈哈")
-  .set(fn, "是fn呀")
-  .set(1, "111");
+  .set("key", "value")
+  .set("key", "value1")
+  .set(0, "value0")
+  .set(obj, "对象")
+  .set(obj, "对象")
+  .set(function () {}, "函数");
 
-console.log("map get o", map.get({})); //sy-log
-console.log("map has fn0", map.has(fn)); //sy-log
+console.log("map get key", map.get("key1")); //sy-log
 
-// console.log("删除fn的结果", map.delete(fn)); //sy-log
+console.log("map has key", map.has("key")); //sy-log
 
-console.log("map has fn1", map.has(fn)); //sy-log
+console.log("map delete key", map.delete("key")); //sy-log
 
-// map.clear();
+console.log("map has key", map.has("key")); //sy-log
 
-console.log("map", map.size, map); //sy-log
+console.log("map before clear", map.size, map); //sy-log
 
-const obj = {
-  key2: "value2",
-  1: "111",
-};
+console.log("map clear", map.clear()); //sy-log
 
-console.log("obj", obj); //sy-log
+console.log("map after clear", map.size, map); //sy-log
