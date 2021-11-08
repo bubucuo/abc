@@ -1,73 +1,62 @@
-// ? 最长严格递增子序列的长度。
+// /**
+//  * @param {number[]} nums
+//  * @return {number}
+//  */
+// var lengthOfLIS = function (nums) {
+//   const n = nums.length;
+//   if (n <= 1) {
+//     return n;
+//   }
+//   const dp = new Array(n).fill(1);
+//   let max = 1;
 
-// ! 方法1: 动态规划
-function longestIncreasingSubsequence(nums) {
-  let len = nums.length;
-  if (len <= 1) {
-    return len;
-  }
+//   for (let i = 1; i < n; i++) {
+//     for (let j = i - 1; j >= 0; j--) {
+//       if (nums[i] > nums[j]) {
+//         // 严格递增，获取d[i]的最大值
+//         dp[i] = Math.max(dp[i], dp[j] + 1);
+//       }
+//     }
+//     max = Math.max(dp[i], max);
+//   }
 
-  let dp = new Array(len).fill(1);
-  let max = 1;
-  for (let i = 1; i < len; i++) {
-    for (let j = i - 1; j >= 0; j--) {
-      if (nums[i] > nums[j]) {
-        dp[i] = Math.max(dp[j] + 1, dp[i]);
-      }
-    }
-    max = Math.max(max, dp[i]);
-  }
+//   return max;
+// };
 
-  return max;
-}
-
-function longestIncreasingSubsequence(nums) {
-  let len = 1;
-  let n = nums.length;
+/**
+ * @param {number[]} nums
+ * @return {number}
+ */
+var lengthOfLIS = function (nums) {
+  const n = nums.length;
   if (n <= 1) {
     return n;
   }
-  // 记录长度为i的最长递增子序列的最小值
-  let d = [];
-  d[1] = nums[0];
+  const dp = [null, nums[0]];
+  let max = 1;
 
   for (let i = 1; i < n; i++) {
-    if (nums[i] > d[len]) {
-      d[++len] = nums[i];
+    if (dp[max] < nums[i]) {
+      dp[++max] = nums[i];
       continue;
     }
-    //二分查找，覆盖掉比它大的元素中最小的那个
-    let start = 1,
-      end = len,
-      mid,
-      pos = 0;
-
-    while (start <= end) {
-      mid = (start + end) >> 1;
-      if (nums[i] > d[mid]) {
-        //在右边
+    // 二分查找dp
+    let pos = 0;
+    let left = 1,
+      right = max,
+      mid;
+    while (left <= right) {
+      mid = (left + right) >> 1;
+      if (nums[i] > dp[mid]) {
+        // 元素在右边
+        left = mid + 1;
         pos = mid;
-        start = mid + 1;
       } else {
-        end = mid - 1;
+        right = mid - 1;
       }
     }
-    d[pos + 1] = nums[i];
+    dp[pos + 1] = nums[i];
   }
 
-  return len;
-}
-
-let test = [10, 9, 2, 5, 3, 7, 101, 18]; //4
-test = [0, 1, 0, 3, 2, 3]; //4
-
-// test = [1, 2, 3, 4, 5, -1, -2, 0];
-// test = [0, 8, 4, 12, 2];
-
-test = [4, 10, 4, 3, 8, 9]; //3
-let res = longestIncreasingSubsequence(test);
-
-console.log("res------", res); //sy-log
-
-// nums 0, 1, 0, 3, 2, 3
-//  d      0  1
+  return max;
+};

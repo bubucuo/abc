@@ -56,8 +56,8 @@ function generateArray(list) {
   return res;
 }
 
-let a1 = [1, 2, 3];
-let a2 = [2, 3, 4];
+let a1 = [1];
+let a2 = [1];
 
 let l1 = generateList(a1);
 let l2 = generateList(a2);
