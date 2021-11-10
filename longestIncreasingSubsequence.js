@@ -87,19 +87,19 @@ exports.diffArray = (c1, c2, { mountElement, patch, unmount, move }) => {
     // 实时标记现在还剩下多少新元素需要patch
     let patched = 0;
 
-    // 标记总共有剩下有多少新元素需要patch
+    // 标记当前总共剩下有多少新元素需要patch
     const toBePatched = e2 - s2 + 1;
 
+    // *5.2 遍历老元素
     let moved = false;
-
-    // 记录最大的新子节点的最大的index，查看节点是否需要移动
+    // [i ... e1 + 1]: a b [c d e] f g
+    // [i ... e2 + 1]: a b [e d c h] f g
     let maxNewIndexSoFar = 0;
 
-    //  用于标记最长的稳定序列，因为希望尽可能少的移动节点，保持dom的稳定性
+    // 标记新节点对应的老节点
     const newIndexToOldIndexMap = new Array(toBePatched);
     for (i = 0; i < toBePatched; i++) newIndexToOldIndexMap[i] = 0;
 
-    // *5.2 遍历老元素
     for (i = s1; i <= e1; i++) {
       const prevChild = c1[i];
       if (patched >= toBePatched) {
@@ -107,20 +107,21 @@ exports.diffArray = (c1, c2, { mountElement, patch, unmount, move }) => {
         unmount(prevChild.key);
         continue;
       }
+      // newIndex是节点在新vdom中的下标
       let newIndex = keyToNewIndexMap.get(prevChild.key);
       if (newIndex === undefined) {
         // 老节点没法复用
         unmount(prevChild.key);
       } else {
-        // 下标是newIndex的相对s2的位置，值是老节点下标+1
+        // 节点可以复用
+        // 下标是新节点的相对位置 ，值是老节点的下标位置+1>0
+        // 遍历newIndexToOldIndexMap，value===0，这个节点没法复用，value>0，节点可以复用
         newIndexToOldIndexMap[newIndex - s2] = i + 1;
-        // newIndex是新节点中的下标
-        // ab cdefg
-        // ab edchfg
-        // max =4
+
         if (newIndex >= maxNewIndexSoFar) {
           maxNewIndexSoFar = newIndex;
         } else {
+          // 相对位置发生变化
           moved = true;
         }
         patch(prevChild.key);
@@ -128,40 +129,38 @@ exports.diffArray = (c1, c2, { mountElement, patch, unmount, move }) => {
       }
     }
 
-    // *5.2 遍历新节点 移动 新增
-    console.log("newIndexToOldIndexMap", newIndexToOldIndexMap); //sy-log
+    // *5.3 遍历新元素 move mount
+
+    // 最长递增子序列的元素不需要动
     const increasingNewIndexSequence = moved
       ? getSequence(newIndexToOldIndexMap)
       : [];
+
+    // 最后一个元素下标
     let lastIndex = increasingNewIndexSequence.length - 1;
+
+    // e d c h
     for (i = toBePatched - 1; i >= 0; i--) {
+      // 老节点下标
       const nextIndex = s2 + i;
       const nextChild = c2[nextIndex];
-      // 判断节点是移动还是新增
+      // todo 判断是move还是mount
+      // 如果说当前节点是老节点中就有的，就move，否则就是mount
       if (newIndexToOldIndexMap[i] === 0) {
-        // 挂载新节点
+        // 节点没法复用
         mountElement(nextChild.key);
       } else if (moved) {
-        // 移动节点
+        // 节点可能要移动
         if (lastIndex < 0 || i !== increasingNewIndexSequence[lastIndex]) {
           move(nextChild.key);
         } else {
-          // 节点不需要移动
           lastIndex--;
         }
       }
     }
   }
 
-  // 获取最长递增子序列的路径（index数组）
-
-  // 5 3 4 0
-  // 0 5
-
-  // arr[i]>=0
   function getSequence(arr) {
-    // return [2];
-
     //   初始值是arr，p[i]记录第i个位置的索引
     const recordIndexOfI = arr.slice();
     const result = [0];
@@ -170,7 +169,7 @@ exports.diffArray = (c1, c2, { mountElement, patch, unmount, move }) => {
     let resultLastIndex;
     let resultLast;
 
-    for (let i = 1; i < len; i++) {
+    for (let i = 0; i < len; i++) {
       const arrI = arr[i];
       if (arrI !== 0) {
         // result最后一个元素
@@ -201,6 +200,8 @@ exports.diffArray = (c1, c2, { mountElement, patch, unmount, move }) => {
       }
     }
 
+    console.log("resss", result); //sy-log
+
     //  recordIndexOfI记录了正确的索引 result 进而找到最终正确的索引
     resultLastIndex = result.length - 1;
     resultLast = result[resultLastIndex];
@@ -210,7 +211,11 @@ exports.diffArray = (c1, c2, { mountElement, patch, unmount, move }) => {
       resultLast = recordIndexOfI[resultLast];
       resultLastIndex--;
     }
+    console.log("recordIndexOfI", recordIndexOfI); //sy-log
 
     return result;
   }
+  // function getSequence(arr) {
+  //   return [2];
+  // }
 };

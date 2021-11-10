@@ -138,7 +138,13 @@ describe("数组Diff", () => {
   //   //                 0 1  2 3 4  5 6
   //   // [i ... e1 + 1]: a b [c d e] f g
   //   // [i ... e2 + 1]: a b [e d c h] f g
+  //   //                      4 3 2 0
+  //   //                      [5 4 3 0]
+
+  //   // e d c
+  //   // e d c
   //   // todo
+
   //   // 1. mount
   //   expect(mountElement.mock.calls[0][0]).toBe("h");
 

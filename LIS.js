@@ -64,7 +64,7 @@ arr = [2, 1, 5, 3, 6, 4, 8, 9, 7]; // 1 3 5 6 7
 
 // 1 3 4 7 9
 // 1 3 4 8 9
-// debugger;
+debugger;
 
 const res = getSequence(arr);
 
