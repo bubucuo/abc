@@ -1,17 +1,25 @@
+// old array   a b c d e f g
+// new array a b e d c h f g
+
+// mountElement挂在新元素
+// patch复用老元素
+// unmount卸载老元素
+// move移动元素
+
 exports.diffArray = (c1, c2, { mountElement, patch, unmount, move }) => {
+  // * 1. 左边按序查找，如果节点不能复用，则停止
   function isSameVNodeType(n1, n2) {
     return n1.key === n2.key; //&& n1.type === n2.type;
   }
 
+  // 从左边遍历的下标
   let i = 0;
   const l2 = c2.length;
+  // 最后一个老元素节点下标
   let e1 = c1.length - 1;
+  // 最后一个新元素元素节点下标
   let e2 = l2 - 1;
 
-  // debugger;
-  //* 1.从左边查找，如果节点不能复用，则停止
-  // (a b) c
-  // (a b) d e
   while (i <= e1 && i <= e2) {
     const n1 = c1[i];
     const n2 = c2[i];
@@ -23,9 +31,7 @@ exports.diffArray = (c1, c2, { mountElement, patch, unmount, move }) => {
     i++;
   }
 
-  // * 2. 从右边查找，如果节点不能复用，则停止
-  // a (b c)
-  // d e (b c)
+  // *2. 右边按序查找，如果节点不能复用，则停止
   while (i <= e1 && i <= e2) {
     const n1 = c1[e1];
     const n2 = c2[e2];
@@ -38,18 +44,11 @@ exports.diffArray = (c1, c2, { mountElement, patch, unmount, move }) => {
     e2--;
   }
 
-  // * 3. 老节点没了
-  // (a b)
-  // (a b) c
-  // i = 2, e1 = 1, e2 = 2
-  // (a b)
-  // c (a b)
-  // i = 0, e1 = -1, e2 = 0
-
+  // * 3老节点没了
   if (i > e1) {
+    // 老节点没了
     if (i <= e2) {
-      //* 新节点有,新增
-      // const nextPos = e2 + 1;
+      // 新节点还有
       while (i <= e2) {
         const n2 = c2[i];
         mountElement(n2.key);
@@ -58,48 +57,37 @@ exports.diffArray = (c1, c2, { mountElement, patch, unmount, move }) => {
     }
   }
 
-  // * 4. 新节点没了
-  // (a b) c
-  // (a b)
-  // i = 2, e1 = 2, e2 = 1
-  // a (b c)
-  // (b c)
-  // i = 0, e1 = 0, e2 = -1
+  // * 4.新节点没了
   else if (i > e2) {
+    // 老节点如果有的话，逐个删除
     while (i <= e1) {
-      // * 老节点有 ，删除
       const n1 = c1[i];
       unmount(n1.key);
       i++;
     }
-  }
+  } else {
+    // * 5.新老节点都还有， 新增、删除、移动
+    // ab cde fg
+    // ab edch fg
 
-  // * 5. 新老节点都有，但是顺序不稳定
+    // cde
+    // edch
+    // 老元素遍历到的下标位置
+    const s1 = i;
+    // 新元素元素遍历到的下标位置
+    const s2 = i;
 
-  // [i ... e1 + 1]: a b [c d e] f g
-  // [i ... e2 + 1]: a b [e d c h] f g
-  // i = 2, e1 = 4, e2 = 5
-  else {
-    const s1 = i; // prev starting index
-    const s2 = i; // next starting index
-    // * 5.1 build key:index map for newChildren
-    // * 把新节点做成key value的map图 (key: index)
-    // 为什么做map图，因为想通过key快速获取到节点
+    // * 5.1 把新元素做成key:value的Map图 （key: index）
     const keyToNewIndexMap = new Map();
-    // 遍历新元素，做成map图，方便快速查找与删除
     for (i = s2; i <= e2; i++) {
       const nextChild = c2[i];
       keyToNewIndexMap.set(nextChild.key, i);
     }
 
-    console.log("keyToNewIndexMap**********", keyToNewIndexMap); //sy-log
-
-    // * 5.2 loop through old children left to be patched and try to patch
-    // * matching nodes & remove nodes that are no longer present
-    // * 遍历剩下的可以复用的老节点，删除不再需要的老节点
-    let j;
-    // patched记录了复用老元素的个数
+    // 实时标记现在还剩下多少新元素需要patch
     let patched = 0;
+
+    // 标记总共有剩下有多少新元素需要patch
     const toBePatched = e2 - s2 + 1;
 
     let moved = false;
@@ -111,32 +99,28 @@ exports.diffArray = (c1, c2, { mountElement, patch, unmount, move }) => {
     const newIndexToOldIndexMap = new Array(toBePatched);
     for (i = 0; i < toBePatched; i++) newIndexToOldIndexMap[i] = 0;
 
+    // *5.2 遍历老元素
     for (i = s1; i <= e1; i++) {
-      const prevChild = c1[i]; // 老节点
-      // 如果复用的老元素个数>=新元素的个数，那么老元素删除即可
+      const prevChild = c1[i];
       if (patched >= toBePatched) {
-        // all new children have been patched so this can only be a removal
+        // 复用老元素的个数已经够了
         unmount(prevChild.key);
         continue;
       }
-      // keyToNewIndexMap是新节点的key value的map图，此时通过老节点的key去这个新节点的map里进行查找，
-      // 如果找到了，那么证明有能复用的节点，返回新节点的下标newIndex，复用即可。找不到，则删除老节点。
       let newIndex = keyToNewIndexMap.get(prevChild.key);
-
       if (newIndex === undefined) {
-        // prevChild是老节点，去新节点的map图中没有找到要复用它的节点，删除这个老节点即可
+        // 老节点没法复用
         unmount(prevChild.key);
       } else {
-        // 否则，复用即可
-        // 记录一个通过新节点index找老节点index的数组，等下移动节点的时候要用
-        // ??? 下标是新节点index，因为要从0开始所以减去了s2，值是老节点下标+1
+        // 下标是newIndex的相对s2的位置，值是老节点下标+1
         newIndexToOldIndexMap[newIndex - s2] = i + 1;
-        // maxNewIndexSoFar判断节点是否需要移动，maxNewIndexSoFar初始值是0，第一次复用的节点作为标记位置
-        // 比如上次复用的节点的位置是1，第二次再进来，如果节点位置为8，则需要移动
+        // newIndex是新节点中的下标
+        // ab cdefg
+        // ab edchfg
+        // max =4
         if (newIndex >= maxNewIndexSoFar) {
           maxNewIndexSoFar = newIndex;
         } else {
-          // 节点相对位置发生变化
           moved = true;
         }
         patch(prevChild.key);
@@ -144,70 +128,87 @@ exports.diffArray = (c1, c2, { mountElement, patch, unmount, move }) => {
       }
     }
 
+    // *5.2 遍历新节点 移动 新增
     console.log("newIndexToOldIndexMap", newIndexToOldIndexMap); //sy-log
-
-    // * 5.3 move and mount
-    // 如果有节点移动，那么此时计算出来最稳定的序列，确保对dom的操作影响到最小
     const increasingNewIndexSequence = moved
       ? getSequence(newIndexToOldIndexMap)
       : [];
-    j = increasingNewIndexSequence.length - 1;
-
-    console.log("increasingNewIndexSequence", increasingNewIndexSequence); //sy-log
+    let lastIndex = increasingNewIndexSequence.length - 1;
     for (i = toBePatched - 1; i >= 0; i--) {
       const nextIndex = s2 + i;
       const nextChild = c2[nextIndex];
+      // 判断节点是移动还是新增
       if (newIndexToOldIndexMap[i] === 0) {
-        // 装在新元素
+        // 挂载新节点
         mountElement(nextChild.key);
       } else if (moved) {
-        if (j < 0 || i !== increasingNewIndexSequence[j]) {
+        // 移动节点
+        if (lastIndex < 0 || i !== increasingNewIndexSequence[lastIndex]) {
           move(nextChild.key);
         } else {
-          j--;
+          // 节点不需要移动
+          lastIndex--;
         }
       }
     }
   }
 
+  // 获取最长递增子序列的路径（index数组）
+
+  // 5 3 4 0
+  // 0 5
+
+  // arr[i]>=0
   function getSequence(arr) {
     // return [2];
-    const p = arr.slice();
+
+    //   初始值是arr，p[i]记录第i个位置的索引
+    const recordIndexOfI = arr.slice();
     const result = [0];
-    let i, j, u, v, c;
     const len = arr.length;
-    for (i = 0; i < len; i++) {
+
+    let resultLastIndex;
+    let resultLast;
+
+    for (let i = 1; i < len; i++) {
       const arrI = arr[i];
       if (arrI !== 0) {
-        j = result[result.length - 1];
-        if (arr[j] < arrI) {
-          p[i] = j;
+        // result最后一个元素
+        resultLastIndex = result.length - 1;
+        resultLast = result[resultLastIndex];
+        if (arr[resultLast] < arrI) {
+          recordIndexOfI[i] = resultLast;
           result.push(i);
           continue;
         }
-        u = 0;
-        v = result.length - 1;
-        while (u < v) {
-          c = (u + v) >> 1;
-          if (arr[result[c]] < arrI) {
-            u = c + 1;
+        let left = 0,
+          right = resultLastIndex;
+        while (left < right) {
+          const mid = (left + right) >> 1;
+          if (arr[result[mid]] < arrI) {
+            left = mid + 1;
           } else {
-            v = c;
+            right = mid;
           }
         }
-        if (arrI < arr[result[u]]) {
-          if (u > 0) {
-            p[i] = result[u - 1];
+
+        if (arrI < arr[result[left]]) {
+          if (left > 0) {
+            recordIndexOfI[i] = result[left - 1];
           }
-          result[u] = i;
+          result[left] = i;
         }
       }
     }
-    u = result.length;
-    v = result[u - 1];
-    while (u-- > 0) {
-      result[u] = v;
-      v = p[v];
+
+    //  recordIndexOfI记录了正确的索引 result 进而找到最终正确的索引
+    resultLastIndex = result.length - 1;
+    resultLast = result[resultLastIndex];
+
+    while (resultLastIndex >= 0) {
+      result[resultLastIndex] = resultLast;
+      resultLast = recordIndexOfI[resultLast];
+      resultLastIndex--;
     }
 
     return result;
