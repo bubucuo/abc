@@ -1,4 +1,4 @@
-// 746. 使用最小花费爬楼梯 https://leetcode-cn.com/problems/min-cost-climbing-stairs/
+// ? 746. 使用最小花费爬楼梯 https://leetcode-cn.com/problems/min-cost-climbing-stairs/
 
 // 数组的每个下标作为一个阶梯，第 i 个阶梯对应着一个非负数的体力花费值 cost[i]（下标从 0 开始）。
 // 每当你爬上一个阶梯你都要花费对应的体力值，一旦支付了相应的体力值，你就可以选择向上爬一个阶梯或者爬两个阶梯。
@@ -12,7 +12,7 @@
  * @return {number}
  */
 
-// dp[i]是代表到达下标为i的阶梯的最小花费
+// dp[i]代表到达阶梯i所需要最小体力花费值
 // *时间复杂度O(n)
 // *空间复杂度O(n)
 // var minCostClimbingStairs = function (cost) {
@@ -25,8 +25,6 @@
 //   return dp[len];
 // };
 
-// *时间复杂度O(n)
-// *空间复杂度O(1)
 var minCostClimbingStairs = function (cost) {
   const len = cost.length;
   let prev = 0,
