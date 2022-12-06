@@ -1,112 +1,108 @@
-// const o = { a: "aaa", b: "bbb", 0: "ccc", 1: "ddd" };
-
 function MyMap() {
   this.init();
 }
 
-// 数组+链表
-// [{next:->}, _, _...], 8
 MyMap.prototype.init = function () {
-  this.size = 0;
-
-  // 错误的示范
-  // this.bucket = new Array(8).fill({ next: null });
-
   this.bucket = new Array(8);
 
   for (let i = 0; i < 8; i++) {
-    this.bucket[i] = {};
-    this.bucket[i].next = null;
+    this.bucket[i] = {
+      next: null,
+    };
   }
+
+  this.size = 0;
+
+  // 记录所有节点
+  this.head = null;
+  this.tail = null;
 };
 
+// todo 返回下标
 MyMap.prototype.hash = function (key) {
   let index = 0;
-
-  // 根据key来决定index的大小
   if (typeof key === "string") {
     for (let i = 0; i < 10; i++) {
-      index += isNaN(key.charCodeAt(key)) ? 0 : key.charCodeAt(key);
+      index += isNaN(key.charCodeAt(i)) ? 0 : key.charCodeAt(i);
     }
-  } else if (typeof key === "number") {
-    index = index % this.bucket.length;
   } else if (typeof key === "object") {
     index = 0;
+  } else if (typeof key === "number") {
+    index = key % this.bucket.length;
   } else if (typeof key === "undefined") {
     index = 1;
-  } else if (typeof key === "null") {
+  } else if (typeof key === "boolean") {
     index = 2;
   }
 
-  index = index % this.bucket.length;
-
-  return index;
-};
-
-MyMap.prototype.set = function (key, value) {
-  // 1. 决定把{key:value}存到哪个链表上，其实就是获取到对应的链表下标
-  const i = this.hash(key);
-  // 2.获取当前{key:value}要存放的链表
-  let target = this.bucket[i];
-  // 3. 决定把{key:value}存到链表尾部或者更新
-  while (target.next) {
-    if (target.next.key === key) {
-      // 更新
-      target.next.value = value;
-      return this;
-    }
-    target = target.next;
-  }
-
-  // 新增
-  target.next = { key, value, next: null };
-
-  this.size++;
-  return this;
+  return index % this.bucket.length;
 };
 
 MyMap.prototype.get = function (key) {
-  // 1. 寻找{key:value}在到哪个链表上，其实就是获取到对应的链表下标
   const i = this.hash(key);
-  // 2.获取当前{key:value}要存放的链表
   let target = this.bucket[i];
-  // 3. 找到{key:value}存到链表哪个位置，找到了就返回value，找不到返回undefined
+
   while (target.next) {
     if (target.next.key === key) {
       return target.next.value;
     }
     target = target.next;
   }
+};
 
-  return undefined;
+// 第一次添加、update
+MyMap.prototype.set = function (key, value) {
+  const i = this.hash(key);
+
+  let target = this.bucket[i];
+
+  while (target.next) {
+    if (target.next.key === key) {
+      // update
+      target.next.value = value;
+      return this;
+    }
+    target = target.next;
+  }
+  // 证明节点是第一次添加的
+  target.next = {key, value, next: null};
+
+  // 记录顺序, set不修改原先的顺序
+  if (this.size === 0) {
+    this.head = this.tail = target.next;
+  } else {
+    this.tail.next = target.next;
+    this.tail = this.tail.next;
+  }
+
+  this.size++;
+
+  return this;
 };
 
 MyMap.prototype.has = function (key) {
-  // 1. 寻找{key:value}在到哪个链表上，其实就是获取到对应的链表下标
   const i = this.hash(key);
-  // 2.获取当前{key:value}要存放的链表
   let target = this.bucket[i];
-  // 3. 找到{key:value}存到链表哪个位置，找到了就返回true，找不到返回false
+
   while (target.next) {
     if (target.next.key === key) {
+      // 更新
       return true;
     }
     target = target.next;
   }
-
   return false;
 };
 
+// 删除 变动链表
 MyMap.prototype.delete = function (key) {
-  // 1. 寻找{key:value}在到哪个链表上，其实就是获取到对应的链表下标
   const i = this.hash(key);
-  // 2.获取当前{key:value}要存放的链表
   let target = this.bucket[i];
-  // 3. 找到{key:value}存到链表哪个位置，找到了就删除并且返回true，找不到返回false
 
   while (target.next) {
     if (target.next.key === key) {
       target.next = target.next.next;
+      this.size--;
       return true;
     }
     target = target.next;
@@ -138,7 +134,7 @@ console.log("map delete key", map.delete("key")); //sy-log
 
 console.log("map has key", map.has("key")); //sy-log
 
-console.log("map before clear", map.size, map); //sy-log
+console.log("map before clear", map.size, map, JSON.stringify(map.head)); //sy-log
 
 console.log("map clear", map.clear()); //sy-log
 
